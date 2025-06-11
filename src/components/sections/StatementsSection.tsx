@@ -52,7 +52,7 @@ const StatementsSection = () => {
   const { data: payoutRequests, loading: prLoading } = useCsvData<{
     id: number;
     date: string;
-    amount: number;
+    amount: string;
     method: string;
     status: string;
   }>('/data/payout_requests.csv');
@@ -123,10 +123,10 @@ const StatementsSection = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payoutRequests.map((r: { id: React.Key | null | undefined; date: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: number; method: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; status: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }) => (
+                  {payoutRequests.map((r: { id: React.Key | null | undefined; date: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: string; method: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; status: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }) => (
                     <tr key={r.id} className="border-b border-gray-100">
                       <td className="py-4">{r.date}</td>
-                      <td className="py-4">${r.amount.toFixed(2)}</td>
+                      <td className="py-4">${parseFloat(r.amount.replace('$', '')).toFixed(2)}</td>
                       <td className="py-4">{r.method}</td>
                       <td className="py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">

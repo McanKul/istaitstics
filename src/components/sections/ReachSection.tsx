@@ -1,10 +1,10 @@
 /* ------------------------------------------------------------------
    REACH SECTION
    - Profile-visitors / Promotions / Trial-links / Tracking-links sekmeleri
-   - All / Guests / Users filter ribbon  (sadece profile-visitors’ta)
+   - All / Guests / Users filter ribbon  (sadece profile-visitors'ta)
    - Tarih aralığı (DateSelector) entegrasyonu
    - Sağ tarafta dinamik Summary paneli
-   - VisitorsChart dateRange prop’u alır
+   - VisitorsChart dateRange prop'u alır
 ------------------------------------------------------------------- */
 
 import React, { useState } from 'react';
@@ -15,6 +15,7 @@ import SubTabs from '../SubTabs';
 import DateSelector from '../DateSelector';
 import VisitorsChart from '../charts/VisitorsChart';
 import EmptyState from '../EmptyState';
+import { useCsvData } from '../../hooks/useCsvData';
 
 /* -------- yardımcı tipler --------- */
 type Tab = { id: string; label: string };
@@ -34,6 +35,42 @@ const ReachSection = () => {
     to: new Date(),
   });
 
+  /* ---------- CSV data hooks ---------- */
+  const { data: visitorsData, loading: visitorsLoading } = useCsvData<{
+    stat: string;
+    guests: number;
+    users: number;
+    total: number;
+  }>('/data/visitors_table.csv');
+
+  const { data: promotionsData, loading: promotionsLoading } = useCsvData<{
+    id: number;
+    name: string;
+    discount: string;
+    uses: number;
+    revenue: string;
+    expires: string;
+    status: string;
+  }>('/data/promotions.csv');
+
+  const { data: trialLinksData, loading: trialLoading } = useCsvData<{
+    id: number;
+    name: string;
+    clicks: number;
+    conversions: number;
+    revenue: string;
+    created: string;
+  }>('/data/trial_links.csv');
+
+  const { data: trackingLinksData, loading: trackingLoading } = useCsvData<{
+    id: number;
+    name: string;
+    clicks: number;
+    conversions: number;
+    source: string;
+    created: string;
+  }>('/data/tracking_links.csv');
+
   /* ---------------- sekmeler ---------------- */
   const subTabs: Tab[] = [
     { id: 'profile-visitors', label: 'Profile visitors' },
@@ -48,89 +85,58 @@ const ReachSection = () => {
     { id: 'users', label: 'Users' },
   ];
 
-  /* ---------------- örnek veriler ---------------- */
-  const promotionsData = [
-    {
-      id: 1,
-      name: 'Summer Special',
-      discount: '50%',
-      uses: 0,
-      revenue: '$0.00',
-      expires: 'Jul 31, 2025',
-      status: 'Active',
-    },
-  ];
-
-  const trialLinksData = [
-    {
-      id: 1,
-      name: 'Free 7-day trial',
-      clicks: 5,
-      conversions: 1,
-      revenue: '$3.00',
-      created: 'Jun 01, 2025',
-    },
-  ];
-
-  const trackingLinksData = [
-    {
-      id: 1,
-      name: 'Instagram Bio',
-      clicks: 12,
-      conversions: 1,
-      source: 'Instagram',
-      created: 'May 15, 2025',
-    },
-  ];
-
   /* ----------------------------------------------------------------
      SOL ANA İÇERİK
   ----------------------------------------------------------------- */
   const renderContent = () => {
     /* --- PROFILE VISITORS --- */
-    if (activeSubTab === 'profile-visitors')
+    if (activeSubTab === 'profile-visitors') {
+      if (visitorsLoading) return <EmptyState message="Loading visitors data..." />;
+      
+      const profileVisitors = visitorsData.find(v => v.stat === 'Profile visitors');
+      const totalVisitors = profileVisitors?.total || 0;
+
       return (
         <div className="p-6">
           <div className="mb-6">
             <div className="flex items-center space-x-2 mb-4">
-              <span className="text-xl font-semibold">20 Visitors</span>
+              <span className="text-xl font-semibold">{totalVisitors} Visitors</span>
               <span className="text-green-600 text-sm">↗ 300%</span>
             </div>
             <VisitorsChart dateRange={dateRange} />
           </div>
 
-          {/* Basit tablo (Top countries) örneği */}
+          {/* Visitors table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                  <th className="pb-3">Country</th>
+                  <th className="pb-3">Stat</th>
                   <th className="pb-3 text-right">Guests</th>
                   <th className="pb-3 text-right">Users</th>
                   <th className="pb-3 text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-gray-100">
-                  <td className="py-3">Switzerland</td>
-                  <td className="py-3 text-right">0</td>
-                  <td className="py-3 text-right">11</td>
-                  <td className="py-3 text-right">11</td>
-                </tr>
-                <tr className="border-b border-gray-100">
-                  <td className="py-3">United States</td>
-                  <td className="py-3 text-right">5</td>
-                  <td className="py-3 text-right">1</td>
-                  <td className="py-3 text-right">6</td>
-                </tr>
+                {visitorsData.map((row, index) => (
+                  <tr key={index} className="border-b border-gray-100">
+                    <td className="py-3">{row.stat}</td>
+                    <td className="py-3 text-right">{row.guests}</td>
+                    <td className="py-3 text-right">{row.users}</td>
+                    <td className="py-3 text-right">{row.total}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       );
+    }
 
     /* --- PROMOTIONS --- */
-    if (activeSubTab === 'promotions')
+    if (activeSubTab === 'promotions') {
+      if (promotionsLoading) return <EmptyState message="Loading promotions..." />;
+      
       return promotionsData.length ? (
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -160,7 +166,13 @@ const ReachSection = () => {
                     <td className="py-4 text-right">{p.uses}</td>
                     <td className="py-4 text-right">{p.revenue}</td>
                     <td className="py-4 text-right">{p.expires}</td>
-                    <td className="py-4 text-right">{p.status}</td>
+                    <td className="py-4 text-right">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        p.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -170,9 +182,12 @@ const ReachSection = () => {
       ) : (
         <EmptyState message="No promotions created yet" />
       );
+    }
 
     /* --- TRIAL LINKS --- */
-    if (activeSubTab === 'trial-links')
+    if (activeSubTab === 'trial-links') {
+      if (trialLoading) return <EmptyState message="Loading trial links..." />;
+      
       return trialLinksData.length ? (
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -210,9 +225,12 @@ const ReachSection = () => {
       ) : (
         <EmptyState message="No trial links created yet" />
       );
+    }
 
     /* --- TRACKING LINKS --- */
-    if (activeSubTab === 'tracking-links')
+    if (activeSubTab === 'tracking-links') {
+      if (trackingLoading) return <EmptyState message="Loading tracking links..." />;
+      
       return trackingLinksData.length ? (
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
@@ -250,6 +268,7 @@ const ReachSection = () => {
       ) : (
         <EmptyState message="No tracking links created yet" />
       );
+    }
 
     return null;
   };
@@ -276,24 +295,56 @@ const ReachSection = () => {
   );
 
   const summaryContent = () => {
-    if (activeSubTab === 'profile-visitors')
+    if (activeSubTab === 'profile-visitors') {
+      const profileVisitors = visitorsData.find(v => v.stat === 'Profile visitors');
+      const totalVisitors = profileVisitors?.total || 0;
+      
       return (
         <div className="space-y-4">
-          <SummaryRow label="Profile visitors" value="20" trend="↗ 300%" />
+          <SummaryRow label="Profile visitors" value={totalVisitors.toString()} trend="↗ 300%" />
           <SummaryRow label="New subs / Renews" value="1 / 0" />
           <SummaryRow label="Subscriptions earnings" value="$2.40" trend="↗ 100%" />
           <SummaryRow label="Conversion rate" value="7.1%" />
         </div>
       );
+    }
 
-    if (activeSubTab === 'promotions')
-      return <div className="text-gray-500">Track discount campaigns here.</div>;
+    if (activeSubTab === 'promotions') {
+      const totalUses = promotionsData.reduce((sum, p) => sum + p.uses, 0);
+      return (
+        <div className="space-y-4">
+          <SummaryRow label="Active promotions" value={promotionsData.length.toString()} />
+          <SummaryRow label="Total uses" value={totalUses.toString()} />
+          <SummaryRow label="Revenue generated" value="$0.00" />
+        </div>
+      );
+    }
 
-    if (activeSubTab === 'trial-links')
-      return <div className="text-gray-500">See performance of trial links.</div>;
+    if (activeSubTab === 'trial-links') {
+      const totalClicks = trialLinksData.reduce((sum, l) => sum + l.clicks, 0);
+      const totalConversions = trialLinksData.reduce((sum, l) => sum + l.conversions, 0);
+      
+      return (
+        <div className="space-y-4">
+          <SummaryRow label="Total clicks" value={totalClicks.toString()} />
+          <SummaryRow label="Total conversions" value={totalConversions.toString()} />
+          <SummaryRow label="Conversion rate" value={totalClicks > 0 ? `${((totalConversions / totalClicks) * 100).toFixed(1)}%` : '0%'} />
+        </div>
+      );
+    }
 
-    if (activeSubTab === 'tracking-links')
-      return <div className="text-gray-500">UTM / tracking links analytics.</div>;
+    if (activeSubTab === 'tracking-links') {
+      const totalClicks = trackingLinksData.reduce((sum, l) => sum + l.clicks, 0);
+      const totalConversions = trackingLinksData.reduce((sum, l) => sum + l.conversions, 0);
+      
+      return (
+        <div className="space-y-4">
+          <SummaryRow label="Total clicks" value={totalClicks.toString()} />
+          <SummaryRow label="Total conversions" value={totalConversions.toString()} />
+          <SummaryRow label="Conversion rate" value={totalClicks > 0 ? `${((totalConversions / totalClicks) * 100).toFixed(1)}%` : '0%'} />
+        </div>
+      );
+    }
 
     return null;
   };

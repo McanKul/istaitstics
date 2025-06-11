@@ -4,11 +4,10 @@ import DateSelector from '../DateSelector';
 import BalanceCard from '../BalanceCard';
 import EarningsChart from '../charts/EarningsChart';
 import EarningsTable from '../tables/EarningsTable';
+import { useCsvData } from '../../hooks/useCsvData';
 
 import { subDays } from 'date-fns';
-import { DateRange } from 'react-day-picker'; // ya da kendi type'ını oluştur
-
-
+import { DateRange } from 'react-day-picker';
 
 const OverviewSection = () => {
   const [activeSubTab, setActiveSubTab] = useState('earnings');
@@ -21,9 +20,41 @@ const OverviewSection = () => {
   ];
 
   const [dateRange, setDateRange] = useState<DateRange>({
-  from: subDays(new Date(), 29),
-  to: new Date()
+    from: subDays(new Date(), 29),
+    to: new Date()
   });
+
+  // Load data from CSV
+  const { data: earningsData } = useCsvData<{
+    id: string;
+    name: string;
+    gross: string;
+    net: string;
+  }>('/data/earnings_data.csv');
+
+  const { data: visitorsData } = useCsvData<{
+    stat: string;
+    guests: number;
+    users: number;
+    total: number;
+  }>('/data/visitors_table.csv');
+
+  const { data: subscribersData } = useCsvData<{
+    id: number;
+    name: string;
+    username: string;
+    price: string;
+    duration: string;
+    status: string;
+    totalSpent: string;
+    lastActive: string;
+  }>('/data/subscribers.csv');
+
+  // Calculate totals from CSV data
+  const totalEarning = earningsData.find(e => e.id === 'total');
+  const totalNet = totalEarning ? parseFloat(totalEarning.net.replace('$', '')) : 0;
+  const profileVisitors = visitorsData.find(v => v.stat === 'Profile visitors');
+  const totalVisitors = profileVisitors?.total || 0;
 
   const renderContent = () => {
     switch (activeSubTab) {
@@ -35,7 +66,7 @@ const OverviewSection = () => {
               <div className="p-4 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">All time</span>
-                  <span className="text-lg font-semibold">$4.80</span>
+                  <span className="text-lg font-semibold">${totalNet.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -45,7 +76,7 @@ const OverviewSection = () => {
               <div className="p-4 border-b border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">May 08, 2025 - Jun 07, 2025</span>
-                  <span className="text-lg font-semibold">$4.80</span>
+                  <span className="text-lg font-semibold">${totalNet.toFixed(2)}</span>
                 </div>
               </div>
               
@@ -63,7 +94,7 @@ const OverviewSection = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">{month}</span>
                       <span className="text-lg font-semibold">
-                        {index === 0 ? '$4.80' : '$0.00'}
+                        {index === 0 ? `$${totalNet.toFixed(2)}` : '$0.00'}
                       </span>
                     </div>
                   </div>
@@ -82,15 +113,15 @@ const OverviewSection = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span className="text-gray-600">Total Earnings</span>
-                    <span className="font-semibold text-lg">$4.80</span>
+                    <span className="font-semibold text-lg">${totalNet.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span className="text-gray-600">Active Subscribers</span>
-                    <span className="font-semibold text-lg">1</span>
+                    <span className="font-semibold text-lg">{subscribersData.length}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span className="text-gray-600">Profile Views</span>
-                    <span className="font-semibold text-lg">14</span>
+                    <span className="font-semibold text-lg">{totalVisitors}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span className="text-gray-600">Posts Published</span>
@@ -132,7 +163,7 @@ const OverviewSection = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold text-blue-900">First Subscriber! 🎉</h4>
-                    <p className="text-blue-700">You gained your first subscriber Adam</p>
+                    <p className="text-blue-700">You gained your first subscriber {subscribersData[0]?.name || 'Adam'}</p>
                     <span className="text-sm text-blue-600">June 5, 2025 • 2 days ago</span>
                   </div>
                   <div className="text-2xl">🎯</div>
@@ -142,7 +173,7 @@ const OverviewSection = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold text-green-900">Revenue Milestone</h4>
-                    <p className="text-green-700">Reached $4.80 in total earnings</p>
+                    <p className="text-green-700">Reached ${totalNet.toFixed(2)} in total earnings</p>
                     <span className="text-sm text-green-600">June 5, 2025 • 2 days ago</span>
                   </div>
                   <div className="text-2xl">💰</div>
@@ -152,7 +183,7 @@ const OverviewSection = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold text-purple-900">Profile Views Spike</h4>
-                    <p className="text-purple-700">14 profile views in the last 30 days</p>
+                    <p className="text-purple-700">{totalVisitors} profile views in the last 30 days</p>
                     <span className="text-sm text-purple-600">Ongoing trend</span>
                   </div>
                   <div className="text-2xl">📈</div>
@@ -235,13 +266,13 @@ const OverviewSection = () => {
           onTabChange={setActiveSubTab}
         />
         <DateSelector
-        value={dateRange}
-        onChange={(label, range) => {
-          if (range?.from && range?.to) {
-            setDateRange(range);
-          }
-        }}
-      />
+          value={dateRange}
+          onChange={(label, range) => {
+            if (range?.from && range?.to) {
+              setDateRange(range);
+            }
+          }}
+        />
 
         {renderContent()}
       </div>
@@ -249,7 +280,7 @@ const OverviewSection = () => {
       <div className="w-80 flex-shrink-0">
         <BalanceCard
           variant="overview"
-          data={{ visitors: 16, subsEarnings: 2.4, messages: 1 }}
+          data={{ visitors: totalVisitors, subsEarnings: 2.4, messages: 1 }}
         />
       </div>
     </div>

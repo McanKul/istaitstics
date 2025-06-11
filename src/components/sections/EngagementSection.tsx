@@ -16,6 +16,7 @@ import DateSelector from '../DateSelector';
 import EngagementChart from '../charts/EngagementChart';
 import EmptyState from '../EmptyState';
 import BalanceCard from '../BalanceCard';
+import { useCsvData } from '../../hooks/useCsvData';
 
 /* ------------------------------------------------------------------
    BİLEŞEN
@@ -28,8 +29,29 @@ const EngagementSection = () => {
     from: subDays(new Date(), 29),
     to: new Date(),
   });
+
+  /* ---------- CSV data hooks ---------- */
+  const { data: messageData, loading: messageLoading } = useCsvData<{
+    id: number;
+    content: string;
+    views: number;
+    responses: number;
+    revenue: string;
+    date: string;
+  }>('/data/message_data.csv');
+
+  const { data: streamingData, loading: streamingLoading } = useCsvData<{
+    id: number;
+    title: string;
+    duration: string;
+    viewers: number;
+    revenue: string;
+    date: string;
+  }>('/data/streaming_data.csv');
+
   type Tab = { id: string; label: string };
   type FilterId = 'purchases' | 'tips' | 'views' | 'likes' | 'comments';
+  
   /* ---------- sabit sekme verileri ---------- */
   const subTabs : Tab[]=  [
     { id: 'posts', label: 'Posts' },
@@ -44,37 +66,6 @@ const EngagementSection = () => {
     { id: 'views', label: 'Views' },
     { id: 'likes', label: 'Likes' },
     { id: 'comments', label: 'Comments' },
-  ];
-
-  /* ---------- örnek data ---------- */
-  const messageData = [
-    {
-      id: 1,
-      content: 'Welcome message to Adam',
-      revenue: '$2.40',
-      date: 'Jun 05, 2025',
-      views: 1,
-      responses: 1,
-    },
-    {
-      id: 2,
-      content: 'Custom content request response',
-      revenue: '$2.40',
-      date: 'Jun 05, 2025',
-      views: 1,
-      responses: 1,
-    },
-  ];
-
-  const streamingData = [
-    {
-      id: 1,
-      title: 'Evening Chat Stream',
-      duration: '2h 15m',
-      viewers: 8,
-      revenue: '$12.50',
-      date: 'Jun 04, 2025',
-    },
   ];
 
   /* ----------------------------------------------------------------
@@ -97,11 +88,20 @@ const EngagementSection = () => {
 
       /* -------------------- MESSAGES --------------------------- */
       case 'messages':
+        if (messageLoading) return <EmptyState message="Loading messages..." />;
+        
+        const totalRevenue = messageData.reduce((sum, msg) => {
+          const revenue = parseFloat(msg.revenue.replace('$', ''));
+          return sum + revenue;
+        }, 0);
+
         return (
           <div className="p-6 space-y-6">
             {/* üst toplam */}
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-semibold">2 Messages, $4.80</span>
+              <span className="text-xl font-semibold">
+                {messageData.length} Messages, ${totalRevenue.toFixed(2)}
+              </span>
               <span className="text-green-600 text-sm">↗ 100%</span>
             </div>
 
@@ -138,11 +138,20 @@ const EngagementSection = () => {
 
       /* ------------------- STREAMING --------------------------- */
       case 'streaming':
+        if (streamingLoading) return <EmptyState message="Loading streams..." />;
+        
+        const totalStreamRevenue = streamingData.reduce((sum, stream) => {
+          const revenue = parseFloat(stream.revenue.replace('$', ''));
+          return sum + revenue;
+        }, 0);
+
         return (
           <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="text-xl font-semibold">1 Stream, $12.50</span>
+                <span className="text-xl font-semibold">
+                  {streamingData.length} Stream, ${totalStreamRevenue.toFixed(2)}
+                </span>
                 <span className="text-green-600 text-sm">New!</span>
               </div>
               <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
@@ -213,22 +222,32 @@ const EngagementSection = () => {
         );
 
       case 'messages':
+        const totalRevenue = messageData.reduce((sum, msg) => {
+          const revenue = parseFloat(msg.revenue.replace('$', ''));
+          return sum + revenue;
+        }, 0);
+        
         return (
           <div className="space-y-4">
-            <SummaryRow label="Messages sent" value="2" trend="↗ 100%" />
-            <SummaryRow label="Revenue generated" value="$4.80" trend="↗ 100%" />
+            <SummaryRow label="Messages sent" value={messageData.length.toString()} trend="↗ 100%" />
+            <SummaryRow label="Revenue generated" value={`$${totalRevenue.toFixed(2)}`} trend="↗ 100%" />
             <SummaryRow label="Response rate" value="100%" />
-            <SummaryRow label="Avg. revenue per message" value="$2.40" />
+            <SummaryRow label="Avg. revenue per message" value={`$${(totalRevenue / Math.max(messageData.length, 1)).toFixed(2)}`} />
           </div>
         );
 
       case 'streaming':
+        const totalStreamRevenue = streamingData.reduce((sum, stream) => {
+          const revenue = parseFloat(stream.revenue.replace('$', ''));
+          return sum + revenue;
+        }, 0);
+        
         return (
           <div className="space-y-4">
-            <SummaryRow label="Streams completed" value="1" trend="New!" />
-            <SummaryRow label="Total watch time" value="2h 15m" />
-            <SummaryRow label="Average viewers" value="8" />
-            <SummaryRow label="Revenue generated" value="$12.50" />
+            <SummaryRow label="Streams completed" value={streamingData.length.toString()} trend="New!" />
+            <SummaryRow label="Total watch time" value={streamingData[0]?.duration || "0h 0m"} />
+            <SummaryRow label="Average viewers" value={streamingData[0]?.viewers.toString() || "0"} />
+            <SummaryRow label="Revenue generated" value={`$${totalStreamRevenue.toFixed(2)}`} />
           </div>
         );
 
@@ -252,17 +271,23 @@ const EngagementSection = () => {
   const getTopContent = () => {
     switch (activeSubTab) {
       case 'messages':
+        const topMessage = messageData[0];
+        if (!topMessage) return <div className="text-gray-500">No messages yet</div>;
+        
         return (
           <div className="text-sm">
-            <div className="font-medium">Welcome message to Adam</div>
-            <div className="text-gray-500">$2.40 revenue • 100% response rate</div>
+            <div className="font-medium">{topMessage.content}</div>
+            <div className="text-gray-500">{topMessage.revenue} revenue • 100% response rate</div>
           </div>
         );
       case 'streaming':
+        const topStream = streamingData[0];
+        if (!topStream) return <div className="text-gray-500">No streams yet</div>;
+        
         return (
           <div className="text-sm">
-            <div className="font-medium">Evening Chat Stream</div>
-            <div className="text-gray-500">$12.50 revenue • 8 viewers</div>
+            <div className="font-medium">{topStream.title}</div>
+            <div className="text-gray-500">{topStream.revenue} revenue • {topStream.viewers} viewers</div>
           </div>
         );
       default:
@@ -284,6 +309,12 @@ const EngagementSection = () => {
       </div>
     </div>
   );
+
+  // Calculate balance card data from CSV
+  const messageRevenue = messageData.reduce((sum, msg) => {
+    const revenue = parseFloat(msg.revenue.replace('$', ''));
+    return sum + revenue;
+  }, 0);
 
   /* ===== JSX ===== */
   return (
@@ -324,7 +355,10 @@ const EngagementSection = () => {
       {/* ---- SAĞ PANEL ---- */}
       <BalanceCard
         variant="engagement"
-        data={{ messages: 1, messageEarnings: 2.4 }}
+        data={{ 
+          messages: messageData.length, 
+          messageEarnings: messageRevenue 
+        }}
       />
 
     </div>

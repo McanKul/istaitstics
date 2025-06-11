@@ -5,6 +5,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+import { useCsvData } from '../hooks/useCsvData';
 
 type Variant =
   | 'statements'
@@ -59,8 +60,16 @@ const Metric = ({
 /*  BalanceCard ana bileşeni                                          */
 /* ------------------------------------------------------------------ */
 const BalanceCard = <T,>({ variant, data }: BalanceCardProps<T>) => {
+  // Load earnings data from CSV for statements variant
+  const { data: earningsData } = useCsvData<{
+    id: string;
+    name: string;
+    gross: string;
+    net: string;
+  }>('/data/earnings_data.csv');
+
   /* -------------------------------------------------------------- */
-  /*  Ortak “Üst bakiye” kutusu                                     */
+  /*  Ortak "Üst bakiye" kutusu                                     */
   /* -------------------------------------------------------------- */
   const BalanceHeader = ({
     current,
@@ -96,30 +105,31 @@ const BalanceCard = <T,>({ variant, data }: BalanceCardProps<T>) => {
   );
 
   /* -------------------------------------------------------------- */
-  /*  Variant-spesifik render’lar                                   */
+  /*  Variant-spesifik render'lar                                   */
   /* -------------------------------------------------------------- */
   const renderBody = () => {
     switch (variant) {
       /* ---------------- STATEMENTS / EARNINGS ------------------ */
       case 'statements': {
-        const d = data as {
-          current: string;
-          pending: string;
-          total: number;
-          subs: number;
-          messages: number;
-          deltas: { total: number; subs: number; messages: number };
-        };
+        // Use CSV data for statements
+        const totalEarning = earningsData.find(e => e.id === 'total');
+        const subsEarning = earningsData.find(e => e.id === 'subscriptions');
+        const messagesEarning = earningsData.find(e => e.id === 'messages');
+
+        const totalGross = totalEarning ? parseFloat(totalEarning.gross.replace('$', '')) : 0;
+        const totalNet = totalEarning ? parseFloat(totalEarning.net.replace('$', '')) : 0;
+        const subsNet = subsEarning ? parseFloat(subsEarning.net.replace('$', '')) : 0;
+        const messagesNet = messagesEarning ? parseFloat(messagesEarning.net.replace('$', '')) : 0;
 
         return (
           <>
             <BalanceHeader
-              current={d.current}
-              pending={d.pending}
+              current="$0.00"
+              pending={`$${totalNet.toFixed(2)}`}
               badge="★ YOU ARE IN THE TOP 93% OF ALL CREATORS!"
             />
 
-            {/* “Manual payouts” bölümü */}
+            {/* "Manual payouts" bölümü */}
             <div className="border-t border-gray-200 pt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-gray-600">Manual payouts</span>
@@ -141,20 +151,19 @@ const BalanceCard = <T,>({ variant, data }: BalanceCardProps<T>) => {
               <h3 className="font-semibold">Earnings</h3>
               <Metric
                 label="Total"
-                value={`$${d.total.toFixed(2)}`}
-                delta={d.deltas.total}
+                value={`$${totalNet.toFixed(2)}`}
+                delta={100}
               />
               <Metric
                 label="Subscriptions"
-                value={`$${d.subs.toFixed(2)}`}
-                delta={d.deltas.subs}
+                value={`$${subsNet.toFixed(2)}`}
+                delta={100}
               />
               <Metric
                 label="Messages"
-                value={`$${d.messages.toFixed(2)}`}
-                delta={d.deltas.messages}
+                value={`$${messagesNet.toFixed(2)}`}
+                delta={100}
               />
-              {/* gerçek micro-sparkline komponentini burada kullanabilirsiniz */}
             </div>
           </>
         );

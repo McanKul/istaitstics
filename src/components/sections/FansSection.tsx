@@ -1,29 +1,22 @@
 /* ------------------------------------------------------------------
    FANS SECTION
-   - Subscriptions / Top-fans sekmeleri
-   - All / Renews / New-subscribers filter ribbon
-   - Tarih aralığı seçimi (DateSelector)
-   - Sağda Summary + Top Fan kartı
 ------------------------------------------------------------------- */
-
 import React, { useState } from 'react';
 import { subDays } from 'date-fns';
 import { Range } from '../types';
 
-import SubTabs from '../SubTabs';
-import DateSelector from '../DateSelector';
-import FansChart from '../charts/FansChart';
-import FanCard from '../cards/FanCard';
-import EmptyState from '../EmptyState';
+import SubTabs       from '../SubTabs';
+import DateSelector  from '../DateSelector';
+import FansChart     from '../charts/FansChart';
+import FanCard       from '../cards/FanCard';
+import EmptyState    from '../EmptyState';
 import { useCsvData } from '../../hooks/useCsvData';
 
 /* ---------- yardımcı tipler ---------- */
-type Tab = { id: string; label: string };
-type FilterId = 'all' | 'renews' | 'new-subscribers';
+type Tab       = { id: string; label: string };
+type FilterId  = 'all' | 'renews' | 'new-subscribers';
 
-/* ------------------------------------------------------------------
-   BİLEŞEN
-------------------------------------------------------------------- */
+/* ------------------------------------------------------------------ */
 const FansSection = () => {
   /* ---------- state ---------- */
   const [activeSubTab, setActiveSubTab] =
@@ -31,57 +24,52 @@ const FansSection = () => {
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [dateRange, setDateRange] = useState<Range>({
     from: subDays(new Date(), 29),
-    to: new Date(),
+    to  : new Date(),
   });
 
-  /* ---------- CSV data hooks ---------- */
+  const parseDollarAmount = (val: unknown): number => {
+    if (typeof val !== 'string' || !val.includes('$')) return 0;
+    const parsed = parseFloat(val.replace('$', ''));
+    return isNaN(parsed) ? 0 : parsed;
+  };  
+  /* ---------- CSV data ---------- */
   const { data: subscribersData, loading: subsLoading } = useCsvData<{
-    id: number;
-    name: string;
-    username: string;
-    price: string;
-    duration: string;
-    status: string;
-    totalSpent: string;
-    lastActive: string;
-  }>('/data/subscribers.csv');
+    id: number; name: string; username: string; price: string;
+    duration: string; status: string; totalSpent: string; lastActive: string;
+  }>('/src/data/subscribers.csv');
 
   const { data: topFansData, loading: fansLoading } = useCsvData<{
-    id: number;
-    name: string;
-    username: string;
-    totalSpent: string;
-    subscriptionMonths: number;
-    tips: string;
-    messages: number;
-    lastActive: string;
-    joinDate: string;
-  }>('/data/top_fans.csv');
+    id: number; name: string; username: string; totalSpent: string;
+    subscriptionMonths: number; tips: string; messages: number;
+    lastActive: string; joinDate: string;
+  }>('/src/data/top_fans.csv');
 
   /* ---------- sekmeler ---------- */
   const subTabs: Tab[] = [
     { id: 'subscriptions', label: 'Subscriptions' },
-    { id: 'top-fans', label: 'Top fans' },
+    { id: 'top-fans',      label: 'Top fans'      },
   ];
-
   const filterTabs: { id: FilterId; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'renews', label: 'Renews' },
+    { id: 'all',             label: 'All'             },
+    { id: 'renews',          label: 'Renews'          },
     { id: 'new-subscribers', label: 'New subscribers' },
   ];
 
-  /* ---------------- SOL ANA İÇERİK ---------------- */
+  /* ---------- SOL ANA İÇERİK ---------- */
   const renderContent = () => {
+    /* Subscriptions sekmesi */
     if (activeSubTab === 'subscriptions') {
       if (subsLoading) return <EmptyState message="Loading subscribers..." />;
-      
-      const totalRevenue = subscribersData.reduce((sum, sub) => {
-        const spent = parseFloat(sub.totalSpent.replace('$', ''));
-        return sum + spent;
-      }, 0);
+
+      const totalRevenue = subscribersData.reduce(
+        (sum, s) => sum + parseDollarAmount(s.totalSpent), 0,
+      );
+      console.log("✔ subscribersData length:", subscribersData.length);
+      console.log("✔ subscribersData sample:", subscribersData.slice(0, 5));
 
       return (
         <div className="p-6">
+          {/* üst özet + grafik */}
           <div className="mb-6">
             <div className="flex items-center space-x-2 mb-4">
               <span className="text-xl font-semibold">
@@ -92,6 +80,7 @@ const FansSection = () => {
             <FansChart dateRange={dateRange} />
           </div>
 
+          {/* tablo */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -110,13 +99,9 @@ const FansSection = () => {
                     <td className="py-4 font-medium">{s.name}</td>
                     <td className="py-4 text-right">{s.price}</td>
                     <td className="py-4 text-right">{s.duration}</td>
-                    <td className="py-4 text-right text-green-600">
-                      {s.totalSpent}
-                    </td>
+                    <td className="py-4 text-right text-green-600">{s.totalSpent}</td>
                     <td className="py-4 text-right">{s.status}</td>
-                    <td className="py-4 text-right text-sm text-gray-500">
-                      {s.lastActive}
-                    </td>
+                    <td className="py-4 text-right text-sm text-gray-500">{s.lastActive}</td>
                   </tr>
                 ))}
               </tbody>
@@ -126,10 +111,9 @@ const FansSection = () => {
       );
     }
 
-    /* top-fans */
+    /* Top-fans sekmesi */
     if (activeSubTab === 'top-fans') {
       if (fansLoading) return <EmptyState message="Loading top fans..." />;
-      
       return topFansData.length ? (
         <div className="p-6 space-y-6">
           {topFansData.map((f) => (
@@ -141,7 +125,7 @@ const FansSection = () => {
                 <div>
                   <h4 className="font-semibold">{f.name}</h4>
                   <p className="text-gray-500">{f.username}</p>
-                  <div className="text-sm text-gray-500 mt-2">
+                  <div className="text-sm text-gray-500 mt-2 space-y-1">
                     <div>Joined: {f.joinDate}</div>
                     <div>Messages: {f.messages}</div>
                     <div>Tips: {f.tips}</div>
@@ -166,16 +150,8 @@ const FansSection = () => {
     return null;
   };
 
-  /* ------------- SAĞ PANEL ------------- */
-  const SummaryRow = ({
-    label,
-    value,
-    trend,
-  }: {
-    label: string;
-    value: string;
-    trend?: string;
-  }) => (
+  /* ---------- SAĞ PANEL ---------- */
+  const SummaryRow = ({ label, value, trend }: { label: string; value: string; trend?: string }) => (
     <div className="flex justify-between">
       <span className="text-gray-600">{label}</span>
       <div className="text-right">
@@ -187,23 +163,19 @@ const FansSection = () => {
 
   const getSummaryContent = () => {
     if (activeSubTab === 'subscriptions') {
-      const totalRevenue = subscribersData.reduce((sum, sub) => {
-        const spent = parseFloat(sub.totalSpent.replace('$', ''));
-        return sum + spent;
-      }, 0);
-      
-      const avgPrice = subscribersData.length > 0 
-        ? subscribersData.reduce((sum, sub) => {
-            const price = parseFloat(sub.price.replace('$', ''));
-            return sum + price;
-          }, 0) / subscribersData.length
+      const totalRevenue = subscribersData.reduce(
+        (sum, s) => sum + parseDollarAmount(s.totalSpent), 0,
+      );
+      const avgPrice = subscribersData.length
+        ? subscribersData.reduce((sum, s) => sum + parseDollarAmount(s.price), 0) /
+          subscribersData.length
         : 0;
 
       return (
         <div className="space-y-4">
-          <SummaryRow label="Subscribers" value={subscribersData.length.toString()} trend="↗ 100%" />
-          <SummaryRow label="New subs / Renews" value="1 / 0" />
-          <SummaryRow label="Subscription earnings" value={`$${totalRevenue.toFixed(2)}`} trend="↗ 100%" />
+          <SummaryRow label="Subscribers"           value={subscribersData.length.toString()} trend="↗ 100%" />
+          <SummaryRow label="New subs / Renews"     value="1 / 0" />
+          <SummaryRow label="Subscription earnings" value={`$${totalRevenue.toFixed(2)}`}   trend="↗ 100%" />
           <SummaryRow label="Avg. subscription price" value={`$${avgPrice.toFixed(2)}`} />
         </div>
       );
@@ -219,7 +191,7 @@ const FansSection = () => {
     return null;
   };
 
-  /* ---------------- JSX ---------------- */
+  /* ---------- JSX ---------- */
   return (
     <div className="flex space-x-6">
       {/* SOL TARAF */}
@@ -230,12 +202,9 @@ const FansSection = () => {
           onTabChange={(id) => setActiveSubTab(id as typeof activeSubTab)}
         />
 
-        <DateSelector
-          value={dateRange}
-          onChange={(_, r) => setDateRange(r)}
-        />
+        <DateSelector value={dateRange} onChange={(_, r) => setDateRange(r)} />
 
-        {/* filter ribbon sadece subscriptions için */}
+        {/* filter ribbon yalnızca subscriptions için */}
         {activeSubTab === 'subscriptions' && (
           <div className="border-b border-gray-200">
             <nav className="flex space-x-6 px-6">
@@ -243,7 +212,7 @@ const FansSection = () => {
                 <button
                   key={t.id}
                   onClick={() => setActiveFilter(t.id)}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeFilter === t.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -267,12 +236,11 @@ const FansSection = () => {
           <h3 className="font-semibold mb-4">Summary</h3>
           {getSummaryContent()}
 
-          {activeSubTab === 'subscriptions' && (
-            <div className="mt-6">
-              <h4 className="font-medium mb-4">Top Fan</h4>
-              {topFansData.length ? <FanCard /> : <EmptyState message="No fans yet" />}
-            </div>
-          )}
+          {/* Top Fan kartı - her zaman tek adet */}
+          <div className="mt-6">
+            <h4 className="font-medium mb-4">Top Fan</h4>
+            {topFansData.length ? <FanCard /> : <EmptyState message="No fans yet" />}
+          </div>
         </div>
       </div>
     </div>

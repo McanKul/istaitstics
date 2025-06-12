@@ -47,7 +47,7 @@ const StatementsSection = () => {
     amount: number;
     fee: number;
     net: number;
-  }>('/data/transactions.csv');
+  }>('/src/data/transactions.csv');
 
   const { data: payoutRequests, loading: prLoading } = useCsvData<{
     id: number;
@@ -55,14 +55,14 @@ const StatementsSection = () => {
     amount: string;
     method: string;
     status: string;
-  }>('/data/payout_requests.csv');
+  }>('/src/data/payout_requests.csv');
 
   const { data: earningsData, loading: edLoading } = useCsvData<{
     id: string;
     name: string;
     gross: number;
     net: number;
-  }>('/data/earnings_data.csv');
+  }>('/src/data/earnings_data.csv');
 
   /* Right panel data now drawn from earningsData[0] etc. */
   const rightPanelData = {
@@ -126,7 +126,9 @@ const StatementsSection = () => {
                   {payoutRequests.map((r: { id: React.Key | null | undefined; date: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: string; method: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; status: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }) => (
                     <tr key={r.id} className="border-b border-gray-100">
                       <td className="py-4">{r.date}</td>
-                      <td className="py-4">${parseFloat(r.amount.replace('$', '')).toFixed(2)}</td>
+                      <td className="py-4">
+                        {r.amount ? `$${parseFloat(r.amount.replace('$', '')).toFixed(2)}` : 'N/A'}
+                      </td>
                       <td className="py-4">{r.method}</td>
                       <td className="py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">

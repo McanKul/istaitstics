@@ -41,7 +41,7 @@ const ReachSection = () => {
     guests: number;
     users: number;
     total: number;
-  }>('/data/visitors_table.csv');
+  }>('/src/data/visitors_table.csv');
 
   const { data: promotionsData, loading: promotionsLoading } = useCsvData<{
     id: number;
@@ -51,7 +51,7 @@ const ReachSection = () => {
     revenue: string;
     expires: string;
     status: string;
-  }>('/data/promotions.csv');
+  }>('/src/data/promotions.csv');
 
   const { data: trialLinksData, loading: trialLoading } = useCsvData<{
     id: number;
@@ -60,7 +60,7 @@ const ReachSection = () => {
     conversions: number;
     revenue: string;
     created: string;
-  }>('/data/trial_links.csv');
+  }>('/src/data/trial_links.csv');
 
   const { data: trackingLinksData, loading: trackingLoading } = useCsvData<{
     id: number;
@@ -69,7 +69,7 @@ const ReachSection = () => {
     conversions: number;
     source: string;
     created: string;
-  }>('/data/tracking_links.csv');
+  }>('/src/data/tracking_links.csv');
 
   /* ---------------- sekmeler ---------------- */
   const subTabs: Tab[] = [

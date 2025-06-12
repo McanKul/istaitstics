@@ -38,7 +38,7 @@ const EngagementSection = () => {
     responses: number;
     revenue: string;
     date: string;
-  }>('/data/message_data.csv');
+  }>('/src/data/message_data.csv');
 
   const { data: streamingData, loading: streamingLoading } = useCsvData<{
     id: number;
@@ -47,7 +47,7 @@ const EngagementSection = () => {
     viewers: number;
     revenue: string;
     date: string;
-  }>('/data/streaming_data.csv');
+  }>('/src/data/streaming_data.csv');
 
   type Tab = { id: string; label: string };
   type FilterId = 'purchases' | 'tips' | 'views' | 'likes' | 'comments';
@@ -91,8 +91,12 @@ const EngagementSection = () => {
         if (messageLoading) return <EmptyState message="Loading messages..." />;
         
         const totalRevenue = messageData.reduce((sum, msg) => {
-          const revenue = parseFloat(msg.revenue.replace('$', ''));
-          return sum + revenue;
+          const revenueStr =
+            typeof msg.revenue === 'string' && msg.revenue.includes('$')
+              ? msg.revenue.replace('$', '')
+              : '0';
+          const revenue = parseFloat(revenueStr);
+          return sum + (isNaN(revenue) ? 0 : revenue);
         }, 0);
 
         return (
@@ -139,10 +143,14 @@ const EngagementSection = () => {
       /* ------------------- STREAMING --------------------------- */
       case 'streaming':
         if (streamingLoading) return <EmptyState message="Loading streams..." />;
-        
+                
         const totalStreamRevenue = streamingData.reduce((sum, stream) => {
-          const revenue = parseFloat(stream.revenue.replace('$', ''));
-          return sum + revenue;
+          const revenueStr =
+            typeof stream.revenue === 'string' && stream.revenue.includes('$')
+              ? stream.revenue.replace('$', '')
+              : '0';
+          const revenue = parseFloat(revenueStr);
+          return sum + (isNaN(revenue) ? 0 : revenue);
         }, 0);
 
         return (
@@ -223,9 +231,11 @@ const EngagementSection = () => {
 
       case 'messages':
         const totalRevenue = messageData.reduce((sum, msg) => {
-          const revenue = parseFloat(msg.revenue.replace('$', ''));
-          return sum + revenue;
+          const revenueStr = typeof msg.revenue === 'string' ? msg.revenue.replace('$', '') : '0';
+          const revenue = parseFloat(revenueStr);
+          return sum + (isNaN(revenue) ? 0 : revenue);
         }, 0);
+
         
         return (
           <div className="space-y-4">
@@ -312,9 +322,15 @@ const EngagementSection = () => {
 
   // Calculate balance card data from CSV
   const messageRevenue = messageData.reduce((sum, msg) => {
-    const revenue = parseFloat(msg.revenue.replace('$', ''));
-    return sum + revenue;
+    const revenueStr =
+      typeof msg.revenue === 'string' && msg.revenue.includes('$')
+        ? msg.revenue.replace('$', '')
+        : '0';
+    const revenue = parseFloat(revenueStr);
+    return sum + (isNaN(revenue) ? 0 : revenue);
   }, 0);
+
+
 
   /* ===== JSX ===== */
   return (

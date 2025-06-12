@@ -30,14 +30,14 @@ const OverviewSection = () => {
     name: string;
     gross: string;
     net: string;
-  }>('/data/earnings_data.csv');
+  }>('/src/data/earnings_data.csv');
 
   const { data: visitorsData } = useCsvData<{
     stat: string;
     guests: number;
     users: number;
     total: number;
-  }>('/data/visitors_table.csv');
+  }>('/src/data/visitors_table.csv');
 
   const { data: subscribersData } = useCsvData<{
     id: number;

@@ -266,21 +266,7 @@ const StatementsSection = () => {
 
     /* Chargebacks */
     if (activeSubTab === 'chargebacks') {
-      return (
-        <div className="bg-white rounded-lg border border-gray-200">
-          {/* Banking Alert */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
-              <AlertTriangle size={20} className="text-red-500" />
-              <p className="text-red-700">
-                Please complete filling out your{' '}
-                <a href="#" className="text-blue-600 hover:underline">
-                  Banking information
-                </a>
-              </p>
-            </div>
-          </div>
-
+      return 
           {/* Date Range Selector */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">

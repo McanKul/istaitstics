@@ -1,80 +1,100 @@
-import React, { useState } from 'react';
+/* ------------------------------------------------------------------
+   STATEMENTS SECTION — alt tab filtreleri + type fix
+------------------------------------------------------------------- */
+import React, { useMemo, useState } from 'react';
 import { subDays } from 'date-fns';
 
-import SubTabs from '../SubTabs';
-import DateSelector from '../DateSelector';
-import BalanceCard from '../BalanceCard';
-import EarningsChart from '../charts/EarningsChart';
-import TransactionTable from '../tables/TransactionTable';
-import EmptyState from '../EmptyState';
+import SubTabs          from '../SubTabs';
+import DateSelector     from '../DateSelector';
+import BalanceCard      from '../BalanceCard';
+import EarningsChart    from '../charts/EarningsChart';
+import TransactionTable, { Transaction } from '../tables/TransactionTable';
+import EmptyState       from '../EmptyState';
+import { useCsvData }   from '../../hooks/useCsvData';
+import { Range }        from '../types';
 
-import { useCsvData } from '../../hooks/useCsvData';
-import { Range } from '../types';
-
+/* ---------- Tipler ---------- */
 type SubTabId = 'earnings' | 'payout-requests' | 'chargebacks' | 'referrals';
-type FilterId =
-  | 'all'
-  | 'subscriptions'
-  | 'tips'
-  | 'posts'
-  | 'messages'
-  | 'streams';
+type FilterId = 'all' | 'subscriptions' | 'tips' | 'posts' | 'messages' | 'streams';
 
+/* ---------- Alt sekme tanımları ---------- */
 const filterTabs: { id: FilterId; label: string }[] = [
-  { id: 'all',           label: 'All' },
+  { id: 'all',           label: 'All'           },
   { id: 'subscriptions', label: 'Subscriptions' },
-  { id: 'tips',          label: 'Tips' },
-  { id: 'posts',         label: 'Posts' },
-  { id: 'messages',      label: 'Messages' },
-  { id: 'streams',       label: 'Streams' },
+  { id: 'tips',          label: 'Tips'          },
+  { id: 'posts',         label: 'Posts'         },
+  { id: 'messages',      label: 'Messages'      },
+  { id: 'streams',       label: 'Streams'       },
 ];
 
 const StatementsSection = () => {
+  /* ---------- state ---------- */
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('earnings');
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [dateRange, setDateRange] = useState<Range>({
     from: subDays(new Date(), 29),
-    to: new Date(),
+    to  : new Date(),
   });
 
-  // ← Load from CSV
-  const { data: transactions, loading: txLoading } = useCsvData<{
-    id: number;
-    date: string;
-    time: string;
-    description: string;
-    user: string;
-    amount: number;
-    fee: number;
-    net: number;
+  /* ---------- CSV verileri ---------- */
+  const { data: transactionsRaw, loading: txLoading } = useCsvData<{
+    id: number; date: string; time: string; description: string;
+    user: string; amount: string; fee: string; net: string;
   }>('/src/data/transactions.csv');
 
   const { data: payoutRequests, loading: prLoading } = useCsvData<{
-    id: number;
-    date: string;
-    amount: string;
-    method: string;
-    status: string;
+    id: number; date: string; amount: string; method: string; status: string;
   }>('/src/data/payout_requests.csv');
 
   const { data: earningsData, loading: edLoading } = useCsvData<{
-    id: string;
-    name: string;
-    gross: number;
-    net: number;
+    id: string; name: string; gross: number; net: number;
   }>('/src/data/earnings_data.csv');
 
-  /* Right panel data now drawn from earningsData[0] etc. */
+  /* ---------- Sağ panel ---------- */
   const rightPanelData = {
-    current: '$0.00',
-    pending: '$4.80',
-    total: earningsData.find((e: { id: string; }) => e.id === 'total')?.gross ?? 0,
-    subs:   earningsData.find((e: { id: string; }) => e.id === 'subscriptions')?.gross ?? 0,
-    messages:
-      earningsData.find((e: { id: string; }) => e.id === 'messages')?.gross ?? 0,
-    deltas: { total: 100, subs: 100, messages: 100 },
+    current : '$0.00',
+    pending : '$4.80',
+    total   : earningsData.find(e => e.id === 'total')?.gross         ?? 0,
+    subs    : earningsData.find(e => e.id === 'subscriptions')?.gross ?? 0,
+    messages: earningsData.find(e => e.id === 'messages')?.gross      ?? 0,
+    deltas  : { total: 100, subs: 100, messages: 100 },
   };
 
+  /* ---------- Yardımcılar ---------- */
+  const parseDollar = (val: string | undefined): number =>
+    val ? parseFloat(val.replace(/[^0-9.-]+/g, '')) || 0 : 0;
+
+  const matchCategory = (desc: string, cat: FilterId) => {
+    const s = desc.toLowerCase();
+    switch (cat) {
+      case 'subscriptions': return /subscription/.test(s);
+      case 'tips'         : return /\btip\b/.test(s);
+      case 'posts'        : return /\bpost\b/.test(s);
+      case 'messages'     : return /\bmessage\b/.test(s);
+      case 'streams'      : return /\bstream\b/.test(s);
+      default             : return true;               // 'all'
+    }
+  };
+
+  /* ---------- Filtre + string→number dönüşümü ---------- */
+  const transactions: Transaction[] = useMemo(() => {
+    const base = activeFilter === 'all'
+      ? transactionsRaw
+      : transactionsRaw.filter(t => matchCategory(t.description, activeFilter));
+
+    return base.map(t => ({
+      id         : t.id,
+      date       : t.date,
+      time       : t.time,
+      description: t.description,
+      user       : t.user,
+      amount     : parseDollar(t.amount),
+      fee        : parseDollar(t.fee),
+      net        : parseDollar(t.net),
+    }));
+  }, [transactionsRaw, activeFilter]);
+
+  /* ---------- Üst sekmeler ---------- */
   const subTabs = [
     { id: 'earnings',        label: 'Earnings' },
     { id: 'payout-requests', label: 'Payout Requests' },
@@ -82,10 +102,12 @@ const StatementsSection = () => {
     { id: 'referrals',       label: 'Referrals' },
   ];
 
-
+  /* ---------- Content ---------- */
   const renderContent = () => {
+    /* Earnings */
     if (activeSubTab === 'earnings') {
       if (txLoading || edLoading) return <EmptyState message="Loading..." />;
+
       return (
         <div className="p-6">
           <div className="mb-6">
@@ -96,13 +118,16 @@ const StatementsSection = () => {
             </div>
             <EarningsChart dateRange={dateRange} />
           </div>
+
           <TransactionTable dateRange={dateRange} data={transactions} />
         </div>
       );
     }
 
+    /* Payout Requests */
     if (activeSubTab === 'payout-requests') {
       if (prLoading) return <EmptyState message="Loading..." />;
+
       return (
         <div className="p-6">
           <div className="mb-6 flex justify-between items-center">
@@ -111,6 +136,7 @@ const StatementsSection = () => {
               Request Payout
             </button>
           </div>
+
           {payoutRequests.length ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -123,11 +149,13 @@ const StatementsSection = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payoutRequests.map((r: { id: React.Key | null | undefined; date: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: string; method: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; status: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }) => (
+                  {payoutRequests.map(r => (
                     <tr key={r.id} className="border-b border-gray-100">
                       <td className="py-4">{r.date}</td>
                       <td className="py-4">
-                        {r.amount ? `$${parseFloat(r.amount.replace('$', '')).toFixed(2)}` : 'N/A'}
+                        {r.amount
+                          ? `$${parseFloat(r.amount.replace(/[^0-9.-]+/g, '')).toFixed(2)}`
+                          : 'N/A'}
                       </td>
                       <td className="py-4">{r.method}</td>
                       <td className="py-4">
@@ -147,61 +175,48 @@ const StatementsSection = () => {
       );
     }
 
-    if (activeSubTab === 'chargebacks') {
-      return (
-        <div className="p-6">
-          <EmptyState message="No chargebacks found" />
-        </div>
-      );
-    }
+    /* Chargebacks & Referrals */
+    if (activeSubTab === 'chargebacks')
+      return <div className="p-6"><EmptyState message="No chargebacks found" /></div>;
 
-    // referrals
-    return (
-      <div className="p-6">
-        <EmptyState message="No referrals yet" />
-      </div>
-    );
+    return <div className="p-6"><EmptyState message="No referrals yet" /></div>;
   };
 
+  /* ---------- JSX ---------- */
   return (
     <div className="flex space-x-6">
+      {/* Sol Panel */}
       <div className="flex-1 space-y-6">
-        <SubTabs
-          tabs={subTabs}
-          activeTab={activeSubTab}
-          onTabChange={(id) => setActiveSubTab(id as SubTabId)}
-        />
+        <SubTabs tabs={subTabs} activeTab={activeSubTab} onTabChange={id => setActiveSubTab(id as SubTabId)} />
 
-        <DateSelector
-          value={dateRange}
-          onChange={(_, newRange) => setDateRange(newRange)}
-        />
+        <DateSelector value={dateRange} onChange={(_, r) => setDateRange(r)} />
+
+        {activeSubTab === 'earnings' && (
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-6 px-6">
+              {filterTabs.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFilter(f.id)}
+                  className={`py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
+                    activeFilter === f.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg border border-gray-200">
-          {activeSubTab === 'earnings' && (
-            <div className="border-b border-gray-200">
-              <nav className="flex space-x-6 px-6">
-                {filterTabs.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setActiveFilter(f.id)}
-                    className={`py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
-                      activeFilter === f.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          )}
-
           {renderContent()}
         </div>
       </div>
 
+      {/* Sağ Panel */}
       <div className="w-80 flex-shrink-0">
         <BalanceCard variant="statements" data={rightPanelData} />
       </div>

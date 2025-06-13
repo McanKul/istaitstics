@@ -28,6 +28,10 @@ const TransactionTable: React.FC<Props> = ({ dateRange, data }) => {
       dateRange
     )
   );
+  const safeAmount = (val: unknown): string => {
+    const num = typeof val === 'number' ? val : parseFloat(String(val));
+    return isNaN(num) ? '0.00' : num.toFixed(2);
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -64,11 +68,13 @@ const TransactionTable: React.FC<Props> = ({ dateRange, data }) => {
                     <span className="text-blue-600">{t.user}</span>
                   </div>
                 </td>
-                <td className="py-4 text-right">${t.amount.toFixed(2)}</td>
-                <td className="py-4 text-right">${t.fee.toFixed(2)}</td>
+                <td className="py-4 text-right">${safeAmount(t.amount)}</td>
+                <td className="py-4 text-right">${safeAmount(t.fee)}</td>
                 <td className="py-4 text-right">
-                  ${(t.amount - t.fee).toFixed(2)}
+                  ${safeAmount((typeof t.amount === 'number' ? t.amount : parseFloat(String(t.amount))) -
+                              (typeof t.fee === 'number' ? t.fee : parseFloat(String(t.fee))))}
                 </td>
+
                 <td className="py-4">
                   <button className="p-1 hover:bg-gray-100 rounded">
                     <MoreHorizontal size={16} className="text-gray-400" />

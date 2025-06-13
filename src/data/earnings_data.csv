@@ -1,9 +1,9 @@
 id,name,gross,net
-total,Total,$6.00,$4.80
-subscriptions,Subscriptions,$3.00,$2.40
-tips,Tips,$0.00,$0.00
-stream-tips,Stream tips,$0.00,$0.00
-posts,Posts,$0.00,$0.00
-messages,Messages,$3.00,$2.40
-referrals,Referrals,$0.00,$0.00
-streams,Streams,$0.00,$0.00
+total,Total,6.00,4.80
+subscriptions,Subscriptions,3.00,2.40
+tips,Tips,0.00,0.00
+stream-tips,Stream tips,0.00,0.00
+posts,Posts,0.00,0.00
+messages,Messages,3.00,2.40
+referrals,Referrals,0.00,0.00
+streams,Streams,0.00,0.00

@@ -1,8 +1,9 @@
 /* ------------------------------------------------------------------
-   STATEMENTS SECTION — alt tab filtreleri + type fix
+   STATEMENTS SECTION — Updated to match design from images
 ------------------------------------------------------------------- */
 import React, { useMemo, useState } from 'react';
 import { subDays } from 'date-fns';
+import { ChevronDown, AlertTriangle } from 'lucide-react';
 
 import SubTabs          from '../SubTabs';
 import DateSelector     from '../DateSelector';
@@ -16,6 +17,7 @@ import { Range }        from '../types';
 /* ---------- Tipler ---------- */
 type SubTabId = 'earnings' | 'payout-requests' | 'chargebacks' | 'referrals';
 type FilterId = 'all' | 'subscriptions' | 'tips' | 'posts' | 'messages' | 'streams';
+type ReferralFilterId = 'referral-earnings' | 'referred-creators' | 'referred-users';
 
 /* ---------- Alt sekme tanımları ---------- */
 const filterTabs: { id: FilterId; label: string }[] = [
@@ -27,10 +29,17 @@ const filterTabs: { id: FilterId; label: string }[] = [
   { id: 'streams',       label: 'Streams'       },
 ];
 
+const referralFilterTabs: { id: ReferralFilterId; label: string }[] = [
+  { id: 'referral-earnings', label: 'Referral earnings' },
+  { id: 'referred-creators', label: 'Referred creators' },
+  { id: 'referred-users',    label: 'Referred users'    },
+];
+
 const StatementsSection = () => {
   /* ---------- state ---------- */
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('earnings');
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
+  const [activeReferralFilter, setActiveReferralFilter] = useState<ReferralFilterId>('referral-earnings');
   const [dateRange, setDateRange] = useState<Range>({
     from: subDays(new Date(), 29),
     to  : new Date(),
@@ -47,18 +56,8 @@ const StatementsSection = () => {
   }>('/src/data/payout_requests.csv');
 
   const { data: earningsData, loading: edLoading } = useCsvData<{
-    id: string; name: string; gross: number; net: number;
+    id: string; name: string; gross: string; net: string;
   }>('/src/data/earnings_data.csv');
-
-  /* ---------- Sağ panel ---------- */
-  const rightPanelData = {
-    current : '$0.00',
-    pending : '$4.80',
-    total   : earningsData.find(e => e.id === 'total')?.gross         ?? 0,
-    subs    : earningsData.find(e => e.id === 'subscriptions')?.gross ?? 0,
-    messages: earningsData.find(e => e.id === 'messages')?.gross      ?? 0,
-    deltas  : { total: 100, subs: 100, messages: 100 },
-  };
 
   /* ---------- Yardımcılar ---------- */
   const parseDollar = (val: string | undefined): number =>
@@ -108,18 +107,113 @@ const StatementsSection = () => {
     if (activeSubTab === 'earnings') {
       if (txLoading || edLoading) return <EmptyState message="Loading..." />;
 
+      const totalNet = earningsData.find(e => e.id === 'total')?.net || '0';
+      const totalGross = earningsData.find(e => e.id === 'total')?.gross || '0';
+
       return (
-        <div className="p-6">
-          <div className="mb-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <span className="text-xl font-semibold">$4.80</span>
-              <span className="text-gray-500">($6.00 Gross)</span>
-              <span className="text-green-600 text-sm">↗ 100%</span>
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Banking Alert */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+              <AlertTriangle size={20} className="text-red-500" />
+              <p className="text-red-700">
+                Please complete filling out your{' '}
+                <a href="#" className="text-blue-600 hover:underline">
+                  Banking information
+                </a>
+              </p>
             </div>
-            <EarningsChart dateRange={dateRange} />
           </div>
 
-          <TransactionTable dateRange={dateRange} data={transactions} />
+          {/* Date Range Selector */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-semibold">Last 30 days</span>
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
+              <div className="text-sm text-gray-500">
+                May 14, 2025 - Jun 13, 2025 (local time UTC +03:00)
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-6 px-6">
+              {filterTabs.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFilter(f.id)}
+                  className={`py-3 px-4 rounded-full text-sm font-medium transition-colors ${
+                    activeFilter === f.id
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Earnings Summary */}
+          <div className="p-6">
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <span className="text-2xl font-bold">${parseDollar(totalNet).toFixed(2)}</span>
+                <span className="text-gray-500">(${parseDollar(totalGross).toFixed(2)} Gross)</span>
+                <span className="text-green-600 text-sm flex items-center">
+                  ↗ 100%
+                </span>
+              </div>
+              <div className="h-48 mb-6">
+                <EarningsChart dateRange={dateRange} />
+              </div>
+            </div>
+
+            {/* Transaction Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
+                    <th className="pb-3">Date</th>
+                    <th className="pb-3 text-right">Amount</th>
+                    <th className="pb-3 text-right">Fee</th>
+                    <th className="pb-3 text-right">Net</th>
+                    <th className="pb-3 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((t) => (
+                    <tr key={t.id} className="border-b border-gray-100">
+                      <td className="py-4">
+                        <div className="font-medium">
+                          {t.date}, {t.time}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {t.description} <span className="text-blue-600">{t.user}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 text-right">${t.amount.toFixed(2)}</td>
+                      <td className="py-4 text-right">${t.fee.toFixed(2)}</td>
+                      <td className="py-4 text-right">${(t.amount - t.fee).toFixed(2)}</td>
+                      <td className="py-4">
+                        <button className="text-gray-400 hover:text-gray-600">⋯</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-gray-500">
+                        No transactions
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       );
     }
@@ -129,57 +223,145 @@ const StatementsSection = () => {
       if (prLoading) return <EmptyState message="Loading..." />;
 
       return (
-        <div className="p-6">
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Payout Requests</h3>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-              Request Payout
-            </button>
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Banking Alert */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+              <AlertTriangle size={20} className="text-red-500" />
+              <p className="text-red-700">
+                Please complete filling out your{' '}
+                <a href="#" className="text-blue-600 hover:underline">
+                  Banking information
+                </a>
+              </p>
+            </div>
           </div>
 
-          {payoutRequests.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                    <th className="pb-3">Date</th>
-                    <th className="pb-3">Amount</th>
-                    <th className="pb-3">Method</th>
-                    <th className="pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payoutRequests.map(r => (
-                    <tr key={r.id} className="border-b border-gray-100">
-                      <td className="py-4">{r.date}</td>
-                      <td className="py-4">
-                        {r.amount
-                          ? `$${parseFloat(r.amount.replace(/[^0-9.-]+/g, '')).toFixed(2)}`
-                          : 'N/A'}
-                      </td>
-                      <td className="py-4">{r.method}</td>
-                      <td className="py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {r.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Date Range Selector */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-semibold">Last 30 days</span>
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
+              <div className="text-sm text-gray-500">
+                May 14, 2025 - Jun 13, 2025
+              </div>
             </div>
-          ) : (
-            <EmptyState message="No payout requests found" />
-          )}
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="text-sm text-gray-600 mb-8">
+              Transactions can take up to 3-5 business days
+            </div>
+            
+            <div className="text-center py-16">
+              <div className="text-gray-400 text-lg mb-2">No data during selected period</div>
+            </div>
+          </div>
         </div>
       );
     }
 
-    /* Chargebacks & Referrals */
-    if (activeSubTab === 'chargebacks')
-      return <div className="p-6"><EmptyState message="No chargebacks found" /></div>;
+    /* Chargebacks */
+    if (activeSubTab === 'chargebacks') {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Banking Alert */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+              <AlertTriangle size={20} className="text-red-500" />
+              <p className="text-red-700">
+                Please complete filling out your{' '}
+                <a href="#" className="text-blue-600 hover:underline">
+                  Banking information
+                </a>
+              </p>
+            </div>
+          </div>
 
-    return <div className="p-6"><EmptyState message="No referrals yet" /></div>;
+          {/* Date Range Selector */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-semibold">Last 30 days</span>
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
+              <div className="text-sm text-gray-500">
+                May 14, 2025 - Jun 13, 2025
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="text-center py-16">
+              <div className="text-gray-400 text-lg mb-2">No data during selected period</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* Referrals */
+    if (activeSubTab === 'referrals') {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Date Range Selector */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg font-semibold">Last 30 days</span>
+                <ChevronDown size={16} className="text-gray-400" />
+              </div>
+              <div className="text-sm text-gray-500">
+                May 14, 2025 - Jun 13, 2025
+              </div>
+            </div>
+          </div>
+
+          {/* Referral Filter Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-6 px-6">
+              {referralFilterTabs.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveReferralFilter(f.id)}
+                  className={`py-3 px-4 rounded-full text-sm font-medium transition-colors ${
+                    activeReferralFilter === f.id
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="mb-6">
+              <div className="text-2xl font-bold mb-4">$0.00</div>
+              <div className="h-48 mb-6">
+                <EarningsChart dateRange={dateRange} />
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600 mb-8">
+              Transactions can take up to 7 business days
+            </div>
+            
+            <div className="text-center py-16">
+              <div className="text-gray-400 text-lg mb-2">No data during selected period</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   /* ---------- JSX ---------- */
@@ -189,28 +371,6 @@ const StatementsSection = () => {
       <div className="flex-1 space-y-6">
         <SubTabs tabs={subTabs} activeTab={activeSubTab} onTabChange={id => setActiveSubTab(id as SubTabId)} />
 
-        <DateSelector value={dateRange} onChange={(_, r) => setDateRange(r)} />
-
-        {activeSubTab === 'earnings' && (
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-6 px-6">
-              {filterTabs.map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setActiveFilter(f.id)}
-                  className={`py-3 px-1 border-b-2 text-sm font-medium transition-colors ${
-                    activeFilter === f.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        )}
-
         <div className="bg-white rounded-lg border border-gray-200">
           {renderContent()}
         </div>
@@ -218,7 +378,7 @@ const StatementsSection = () => {
 
       {/* Sağ Panel */}
       <div className="w-80 flex-shrink-0">
-        <BalanceCard variant="statements" data={rightPanelData} />
+        <BalanceCard variant="statements" data={{}} />
       </div>
     </div>
   );

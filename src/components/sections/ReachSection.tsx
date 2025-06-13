@@ -14,6 +14,7 @@ import { Range } from '../types';
 import SubTabs from '../SubTabs';
 import DateSelector from '../DateSelector';
 import VisitorsChart from '../charts/VisitorsChart';
+import VisitorsTable from '../tables/VisitorsTable';
 import EmptyState from '../EmptyState';
 import { useCsvData } from '../../hooks/useCsvData';
 
@@ -99,36 +100,21 @@ const ReachSection = () => {
       return (
         <div className="p-6">
           <div className="mb-6">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-6">
               <span className="text-xl font-semibold">{totalVisitors} Visitors</span>
-              <span className="text-green-600 text-sm">↗ 300%</span>
+              <span className="text-green-600 text-sm flex items-center">
+                ↗ 625%
+              </span>
             </div>
-            <VisitorsChart dateRange={dateRange} />
+            
+            {/* Chart Container */}
+            <div className="h-64 mb-8 bg-gray-50 rounded-lg p-4">
+              <VisitorsChart dateRange={dateRange} />
+            </div>
           </div>
 
           {/* Visitors table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-sm text-gray-500 border-b border-gray-200">
-                  <th className="pb-3">Stat</th>
-                  <th className="pb-3 text-right">Guests</th>
-                  <th className="pb-3 text-right">Users</th>
-                  <th className="pb-3 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visitorsData.map((row, index) => (
-                  <tr key={index} className="border-b border-gray-100">
-                    <td className="py-3">{row.stat}</td>
-                    <td className="py-3 text-right">{row.guests}</td>
-                    <td className="py-3 text-right">{row.users}</td>
-                    <td className="py-3 text-right">{row.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <VisitorsTable />
         </div>
       );
     }

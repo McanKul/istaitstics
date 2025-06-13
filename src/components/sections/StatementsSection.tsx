@@ -264,32 +264,6 @@ const StatementsSection = () => {
       );
     }
 
-    /* Chargebacks */
-    if (activeSubTab === 'chargebacks') {
-      return 
-      <div className="p-6 border-b border-gray-200">
-          {/* Date Range Selector */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold">Last 30 days</span>
-                <ChevronDown size={16} className="text-gray-400" />
-              </div>
-              <div className="text-sm text-gray-500">
-                May 14, 2025 - Jun 13, 2025
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6">
-            <div className="text-center py-16">
-              <div className="text-gray-400 text-lg mb-2">No data during selected period</div>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     /* Referrals */
     if (activeSubTab === 'referrals') {

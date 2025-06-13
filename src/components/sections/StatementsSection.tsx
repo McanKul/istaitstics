@@ -274,7 +274,6 @@ const StatementsSection = () => {
               <div className="text-gray-400 text-lg mb-2">No data during selected period</div>
             </div>
           </div>
-        </div>
       );
     }
 
